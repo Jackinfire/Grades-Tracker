@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef, useLayoutEffect } from 'react';
 
 // --- THEME DATA ---
-// This object stores all the text and styling variations for the different themes.
 const themes = {
     default: {
         title: "Grades Tracker",
@@ -33,7 +32,7 @@ const themes = {
             if (grade >= 70) return "You're literally slaying! ✨";
             if (grade >= 60) return "You're doing amazing, sweetie! 💅";
             if (grade >= 50) return "Pop off, queen!";
-            return "Main character energy loading... �";
+            return "Main character energy loading... 💪";
         },
         getGradeColor: (grade) => {
             if (grade >= 70) return 'text-pink-500';
@@ -68,12 +67,6 @@ const themes = {
 };
 
 // --- HELPER & CALCULATION FUNCTIONS ---
-
-/**
- * Calculates the weighted average for a single module based on its assessments.
- * @param {object} module - The module object.
- * @returns {object} An object containing the calculated average and the total weight of graded assessments.
- */
 const calculateModuleAverage = (module) => {
     let totalWeightedScore = 0, totalWeight = 0;
     module.assessments.forEach(a => {
@@ -85,12 +78,6 @@ const calculateModuleAverage = (module) => {
     return { average: totalWeight === 0 ? 0 : totalWeightedScore / totalWeight, totalWeight: totalWeight * 100 };
 };
 
-/**
- * Calculates the weighted average for a year based on its modules and their ECTS credits.
- * Uses the moderated score if available, otherwise calculates it.
- * @param {object} year - The year object.
- * @returns {number} The calculated year average.
- */
 const calculateYearAverage = (year) => {
     let totalWeightedModuleScore = 0, totalEcts = 0;
     year.modules.forEach(module => {
@@ -103,11 +90,6 @@ const calculateYearAverage = (year) => {
     return totalEcts === 0 ? 0 : totalWeightedModuleScore / totalEcts;
 };
 
-/**
- * Calculates the final degree average based on the averages and weightings of all years.
- * @param {Array} years - The array of all year objects.
- * @returns {number} The final calculated degree average.
- */
 const calculateOverallDegreeAverage = (years) => {
     let totalWeightedYearScore = 0, totalWeighting = 0;
     years.forEach(year => {
@@ -119,12 +101,6 @@ const calculateOverallDegreeAverage = (years) => {
     return totalWeighting === 0 ? 0 : totalWeightedYearScore / totalWeighting;
 };
 
-/**
- * Calculates the average grade needed on remaining assessments to achieve a target module grade.
- * @param {object} module - The module object.
- * @param {number} target - The target grade (e.g., 70 for a First).
- * @returns {string} The required average, or a status like 'N/A', 'Done', or 'Achieved'.
- */
 const calculateTargetGrade = (module, target) => {
     if (!module || module.moderatedScore !== null) return 'N/A';
     let gradedWeight = 0, achievedScore = 0;
@@ -144,10 +120,6 @@ const calculateTargetGrade = (module, target) => {
 
 // --- COMPONENTS ---
 
-/**
- * A modal component that asks for user confirmation before performing an action.
- * @param {object} props - Contains the message, onConfirm, and onCancel functions.
- */
 const ConfirmationModal = ({ message, onConfirm, onCancel }) => (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
         <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-sm">
@@ -160,10 +132,6 @@ const ConfirmationModal = ({ message, onConfirm, onCancel }) => (
     </div>
 );
 
-/**
- * A simple tooltip component that shows text on hover.
- * @param {object} props - Contains the tooltip text and the child element to wrap.
- */
 const Tooltip = ({ text, children }) => (
     <div className="relative inline-block group">
         {children}
@@ -173,10 +141,6 @@ const Tooltip = ({ text, children }) => (
     </div>
 );
 
-/**
- * Renders a single assessment row with inputs for title, date, weight, and grade.
- * @param {object} props - Contains assessment data and handler functions for update/delete.
- */
 const Assessment = ({ assessment, onUpdate, onDelete }) => (
     <div className="grid grid-cols-12 gap-2 items-center py-2 border-t">
         <input type="text" value={assessment.title} onChange={(e) => onUpdate('title', e.target.value)} className="col-span-4 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-300 rounded p-1 -m-1" placeholder="Assessment Title" />
@@ -195,12 +159,7 @@ const Assessment = ({ assessment, onUpdate, onDelete }) => (
     </div>
 );
 
-/**
- * Renders a full module, including its header, assessments, and target grade calculator.
- * @param {object} props - Contains module data, theme, and handler functions.
- */
 const Module = ({ module, onUpdate, onDelete, onAddAssessment, theme }) => {
-    // useMemo ensures calculations only re-run when module data changes.
     const { average, totalWeight } = useMemo(() => calculateModuleAverage(module), [module]);
     const effectiveAverage = module.moderatedScore ?? average;
     const sourceText = module.moderatedScore !== null ? '(Moderated)' : `(${totalWeight.toFixed(0)}% weighted)`;
@@ -254,10 +213,6 @@ const Module = ({ module, onUpdate, onDelete, onAddAssessment, theme }) => {
     );
 };
 
-/**
- * Renders a full, collapsible year section, including its modules and performance summary.
- * @param {object} props - Contains year data, theme, and handler functions.
- */
 const Year = ({ year, onUpdate, onDelete, onAddModule, theme, requestDelete }) => {
     const [isCollapsed, setIsCollapsed] = useState(year.collapsed);
     const contentRef = useRef(null);
@@ -269,12 +224,10 @@ const Year = ({ year, onUpdate, onDelete, onAddModule, theme, requestDelete }) =
         onUpdate('collapsed', !isCollapsed);
     };
     
-    // Calculate total number of assessments to trigger resize effect correctly.
     const totalAssessments = useMemo(() => {
         return year.modules.reduce((acc, module) => acc + module.assessments.length, 0);
     }, [year.modules]);
 
-    // useLayoutEffect runs after the DOM is painted, ensuring scrollHeight is accurate.
     useLayoutEffect(() => {
         if (contentRef.current) {
             contentRef.current.style.maxHeight = isCollapsed ? '0px' : `${contentRef.current.scrollHeight}px`;
@@ -325,10 +278,6 @@ const Year = ({ year, onUpdate, onDelete, onAddModule, theme, requestDelete }) =
     );
 };
 
-/**
- * Renders the full-screen calendar modal.
- * @param {object} props - Contains all years data and the onClose handler.
- */
 const Calendar = ({ years, onClose }) => {
     const [date, setDate] = useState(new Date());
 
@@ -388,18 +337,12 @@ const Calendar = ({ years, onClose }) => {
 
 
 // --- MAIN APP COMPONENT ---
-// This is the root component that manages the entire application's state.
 export default function App() {
-    // State for all academic years.
     const [years, setYears] = useState([]);
-    // State for the current theme.
     const [theme, setTheme] = useState('default');
-    // State to control the visibility of the calendar modal.
     const [isCalendarOpen, setCalendarOpen] = useState(false);
-    // State to manage the confirmation modal for deletions.
     const [deleteRequest, setDeleteRequest] = useState(null);
 
-    // useEffect hook to load data from localStorage when the app starts.
     useEffect(() => {
         const savedData = localStorage.getItem('gradeTrackerData');
         if (savedData) setYears(JSON.parse(savedData));
@@ -408,20 +351,16 @@ export default function App() {
         setTheme(savedTheme);
     }, []);
 
-    // useEffect hook to save data to localStorage whenever the 'years' state changes.
     useEffect(() => {
         localStorage.setItem('gradeTrackerData', JSON.stringify(years));
     }, [years]);
     
-    // useEffect hook to apply theme styles and save the theme choice to localStorage.
     useEffect(() => {
         localStorage.setItem('currentTheme', theme);
         document.body.classList.remove('josh-mode-theme', 'asian-parent-theme');
         if (theme === 'joshMode') document.body.classList.add('josh-mode-theme');
         if (theme === 'asianParent') document.body.classList.add('asian-parent-theme');
     }, [theme]);
-
-    // --- Event Handlers ---
 
     const handleAddYear = () => {
         const yearNumber = years.length + 1;
@@ -483,11 +422,9 @@ export default function App() {
         document.body.removeChild(link);
     };
 
-    // Memoize the overall average calculation so it only runs when 'years' data changes.
     const overallAvg = useMemo(() => calculateOverallDegreeAverage(years), [years]);
     const t = themes[theme];
 
-    // The main JSX returned by the App component, which renders the entire UI.
     return (
         <div className="container mx-auto p-4 md:p-8 max-w-6xl">
             {deleteRequest && <ConfirmationModal message={deleteRequest.message} onConfirm={confirmDelete} onCancel={() => setDeleteRequest(null)} />}
@@ -545,4 +482,3 @@ export default function App() {
         </div>
     );
 }
-�
